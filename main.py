@@ -1,19 +1,19 @@
-# import numpy as np
-# import matplotlib.pyplot as plt
-
-# This is a sample Python script.
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 
 class Action:
     def __init__(self, id):
+
         self.id = id
+        # current reward return average
         self.mean = 0
+        # number of trials
         self.N = 0
+
+    # initial reward average
+    def start_reward(self, reward):
+        self.mean = reward
 
     # return chosen action
     def choose_action(self):
@@ -25,11 +25,22 @@ class Action:
         # action-value function
         self.mean = (1 - 1.0 / self.N) * self.mean + 1.0 / self.N * x
 
+    def update_upper_bound(self):
+        i = math.sqrt(3 / 2 * math.log(n + 1) / numbers_of_selections[i])
+        upper_bound = average_reward + i
+        return upper_bound
+
 # Plot trend of rewards over iterations(N)
-def plot_avg(rewards, title):
+def plot_avg(rewards, averages, title):
+
+    plt.hist(rewards)
+    plt.title('Histogram of actions selections')
+    plt.xlabel('Actions')
+    plt.ylabel('Number of times selected')
+    plt.show()
 
     # plot moving average
-    plt.plot(rewards)
+    plt.plot(averages)
 
     # for c in range(1,k+1):
     #     plt.plot(np.ones(N) * c)
@@ -76,7 +87,7 @@ def e_greedy(k, eps, N):
         chosen_actions[i] = x
 
     avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    plot_avg(avg, "Epsilon-greedy Method")
+    plot_avg(chosen_actions, avg, "Epsilon-greedy Method")
 
 def greedy(k, N):
 
@@ -98,30 +109,59 @@ def greedy(k, N):
         chosen_actions[i] = x
 
     avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    plot_avg(avg, "Greedy Method")
+    plot_avg(chosen_actions, avg, "Greedy Method")
 
-def optimistic_initial_values(k, N, start):
+def optimistic_initial_values(eps, start, k, N):
+    # initialize actions
+    actions = []
+    for a in range(1, k + 1):
+        actions.append(Action(a))
+        # set initial reward
+        Action(a).start_reward(start)
+
+    # choose a percentage of indexes given epsilon
+    random_list = []
+    nr = int(eps * float(N))
+    for i in range(nr):
+        random_list.append(random.randint(0, N))
+
+    # keep track of chosen action to calculate total reward
+    chosen_actions = np.empty(N)
+
+    for i in range(N):
+
+        if i in random_list:
+            # explore
+            j = np.random.choice(k)
+        else:
+            # exploit
+            j = np.argmax([a.mean for a in actions])
+
+        x = actions[j].choose_action()
+        actions[j].update(x)
+        chosen_actions[i] = x
+
+    avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
+    plot_avg(chosen_actions, avg, "Optimistic Initial Values Method")
+
+def upper_conf_bound(k, N):
 
     # initialize actions
     actions = []
     for a in range(1, k + 1):
         actions.append(Action(a))
 
-    print('idk yet')
-    # # keep track of chosen action to calculate total reward
-    # chosen_actions = np.empty(N)
-    #
-    # for i in range(N):
-    #
-    #     j = np.random.choice(k)
-    #
-    #     if
-    #
-    #         x = actions[j].choose_action()
-    #         actions[j].update(x)
-    #         chosen_actions[i] = x
+    # choose a percentage of indexes given epsilon
+    random_list = []
+    nr = int(eps * float(N))
+    for i in range(nr):
+        random_list.append(random.randint(0, N))
 
-        #print(j)
+    # keep track of chosen action to calculate total reward
+    chosen_actions = np.empty(N)
+
+    # for i in range(N):
+    #     max_upper_bound = 0
     #     if i in random_list:
     #         # explore
     #         j = np.random.choice(k)
@@ -134,7 +174,8 @@ def optimistic_initial_values(k, N, start):
     #     chosen_actions[i] = x
     #
     # avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    # plot_avg(avg, "Optimistic Initial Values Method")
+    # plot_avg(avg, "Upper-Confidence Bound")
+
 
 def print_methods():
     print(f'Choose a method: \n 1 - Greedy \n 2 - Epsilon-greedy '
@@ -161,7 +202,12 @@ if __name__ == '__main__':
         N = int(input('N: - '))
         e_greedy(k, eps, N)
     elif m == 3:
-        optimistic_initial_values(3, 100, 2)
+        print('Please specify the following parameters')
+        eps = float(input('epsilon: - '))
+        start = int(input('initial reward: - '))
+        k = int(input('k: - '))
+        N = int(input('N: - '))
+        optimistic_initial_values(eps, start, k, N)
 
     #e_greedy(4, 0.01, 1000)
 
