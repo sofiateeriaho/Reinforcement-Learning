@@ -1,10 +1,11 @@
+# Reinforcement Learning - Assignment 1
+
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 
 class Action:
     def __init__(self, id):
-
         self.id = id
         # current reward return average
         self.mean = 0
@@ -30,7 +31,7 @@ class Action:
         upper_bound = average_reward + i
         return upper_bound
 
-# Plot trend of rewards over iterations(N)
+# Plot chosen rewards and avg trend of rewards over iterations(N)
 def plot_avg(rewards, averages, title):
 
     plt.hist(rewards)
@@ -51,18 +52,12 @@ def plot_avg(rewards, averages, title):
     plt.title(title)
     plt.show()
 
-    # for b in actions:
-    #     print(b.mean)
-
 def e_greedy(k, eps, N):
 
     # initialize actions
     actions = []
     for a in range(1, k+1):
         actions.append(Action(a))
-
-    # for a in range(k):
-    #     print(actions[a].id)
 
     # choose a percentage of indexes given epsilon
     random_list = []
@@ -100,7 +95,6 @@ def greedy(k, N):
     chosen_actions = np.empty(N)
 
     for i in range(N):
-
         # only exploit
         j = np.argmax([a.mean for a in actions])
 
@@ -144,7 +138,7 @@ def optimistic_initial_values(eps, start, k, N):
     avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
     plot_avg(chosen_actions, avg, "Optimistic Initial Values Method")
 
-def upper_conf_bound(k, N):
+def upper_conf_bound(eps, conf, k, N):
 
     # initialize actions
     actions = []
@@ -160,22 +154,8 @@ def upper_conf_bound(k, N):
     # keep track of chosen action to calculate total reward
     chosen_actions = np.empty(N)
 
-    # for i in range(N):
-    #     max_upper_bound = 0
-    #     if i in random_list:
-    #         # explore
-    #         j = np.random.choice(k)
-    #     else:
-    #         # exploit
-    #         j = np.argmax([a.mean for a in actions])
-    #
-    #     x = actions[j].choose_action()
-    #     actions[j].update(x)
-    #     chosen_actions[i] = x
-    #
-    # avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    # plot_avg(avg, "Upper-Confidence Bound")
-
+    # implement rest
+    print("Not implemented yet")
 
 def print_methods():
     print(f'Choose a method: \n 1 - Greedy \n 2 - Epsilon-greedy '
@@ -209,12 +189,18 @@ if __name__ == '__main__':
         N = int(input('N: - '))
         optimistic_initial_values(eps, start, k, N)
 
-    #e_greedy(4, 0.01, 1000)
+    elif m == 4:
+        print('Not implemented')
+        #Softmax policy
 
-    # dispatch = {'1': greedy}
-    #
-    # m = input('Option: - ')
-    #
-    # dispatch[m]()
+    elif m == 5:
+        print('Please specify the following parameters')
+        eps = float(input('epsilon: - '))
+        conf = int(input('confidence bound: - '))
+        k = int(input('k: - '))
+        N = int(input('N: - '))
+        upper_conf_bound(eps, conf, k, N)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    elif m == 6:
+        print('Not implemented')
+        #Action preferences
