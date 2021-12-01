@@ -31,13 +31,19 @@ class Action:
         upper_bound = average_reward + i
         return upper_bound
 
-# Plot chosen rewards and avg trend of rewards over iterations(N)
-def plot_avg(rewards, averages, title):
+# Plot chosen actions and average trend of rewards over iterations(N)
+def plot_avg(actions, averages, title, k):
 
-    plt.hist(rewards)
+    bins = np.arange(k+2) - 0.5
+    plt.hist(actions, bins, edgecolor='black')
+    plt.xticks(range(k+1))
+    plt.xlim([0, k+1])
+
     plt.title('Histogram of actions selections')
     plt.xlabel('Actions')
     plt.ylabel('Number of times selected')
+    axes = plt.gca()
+    axes.yaxis.grid()
     plt.show()
 
     # plot moving average
@@ -46,10 +52,11 @@ def plot_avg(rewards, averages, title):
     # for c in range(1,k+1):
     #     plt.plot(np.ones(N) * c)
 
-    plt.xscale('log')
+    plt.title(title)
     plt.ylabel('Reward value')
     plt.xlabel('Iterations')
-    plt.title(title)
+    axes = plt.gca()
+    axes.yaxis.grid()
     plt.show()
 
 def e_greedy(k, eps, N):
@@ -65,8 +72,9 @@ def e_greedy(k, eps, N):
     for i in range(nr):
         random_list.append(random.randint(0, N))
 
-    # keep track of chosen action to calculate total reward
-    chosen_actions = np.empty(N)
+    # keep track of chosen actions and their rewards
+    chosen_actions = []
+    chosen_rewards = np.empty(N)
 
     for i in range(N):
 
@@ -79,10 +87,11 @@ def e_greedy(k, eps, N):
 
         x = actions[j].choose_action()
         actions[j].update(x)
-        chosen_actions[i] = x
+        chosen_rewards[i] = x
+        chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Epsilon-greedy Method")
+    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
+    plot_avg(chosen_actions, avg, "Epsilon-greedy Method", k)
 
 def greedy(k, N):
 
@@ -91,8 +100,9 @@ def greedy(k, N):
     for a in range(1, k + 1):
         actions.append(Action(a))
 
-    # keep track of chosen action to calculate total reward
-    chosen_actions = np.empty(N)
+    # keep track of chosen actions and their rewards
+    chosen_actions = []
+    chosen_rewards = np.empty(N)
 
     for i in range(N):
         # only exploit
@@ -100,10 +110,11 @@ def greedy(k, N):
 
         x = actions[j].choose_action()
         actions[j].update(x)
-        chosen_actions[i] = x
+        chosen_rewards[i] = x
+        chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Greedy Method")
+    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
+    plot_avg(chosen_actions, avg, "Greedy Method", k)
 
 def optimistic_initial_values(eps, start, k, N):
     # initialize actions
@@ -119,8 +130,9 @@ def optimistic_initial_values(eps, start, k, N):
     for i in range(nr):
         random_list.append(random.randint(0, N))
 
-    # keep track of chosen action to calculate total reward
-    chosen_actions = np.empty(N)
+    # keep track of chosen actions and their rewards
+    chosen_actions = []
+    chosen_rewards = np.empty(N)
 
     for i in range(N):
 
@@ -133,10 +145,11 @@ def optimistic_initial_values(eps, start, k, N):
 
         x = actions[j].choose_action()
         actions[j].update(x)
-        chosen_actions[i] = x
+        chosen_rewards[i] = x
+        chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_actions) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Optimistic Initial Values Method")
+    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
+    plot_avg(chosen_actions, avg, "Optimistic Initial Values Method", k)
 
 def upper_conf_bound(eps, conf, k, N):
 
