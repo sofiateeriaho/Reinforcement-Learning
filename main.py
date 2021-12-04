@@ -178,9 +178,6 @@ def upper_conf_bound(k, N):
     # keep track of chosen actions and their rewards
     chosen_actions = []
     chosen_rewards = np.empty(N)
-
-    # how many times said action is chosen
-
     sums_of_reward = [0] * k
     total_reward = 0
 
