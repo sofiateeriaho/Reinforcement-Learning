@@ -51,10 +51,12 @@ class Action:
         return upper_bound
 
 # Plot chosen actions and average trend of rewards over iterations(N)
-def plot_avg(actions, averages, title, k):
+def plot_avg(actions, chosen_rewards, title, k, N):
+
+    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
 
     # plot moving average
-    plt.plot(averages)
+    plt.plot(avg)
     plt.title(title)
     plt.ylabel('Average reward value')
     plt.xlabel('Iterations')
@@ -106,8 +108,7 @@ def e_greedy(k, eps, N):
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Epsilon-greedy Method", k)
+    plot_avg(chosen_actions, chosen_rewards, "Epsilon-greedy Method", k, N)
 
 def greedy(k, N):
 
@@ -129,8 +130,7 @@ def greedy(k, N):
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Greedy Method", k)
+    plot_avg(chosen_actions, chosen_rewards, "Greedy Method", k, N)
 
 def optimistic_initial_values(eps, start, k, N):
 
@@ -165,8 +165,7 @@ def optimistic_initial_values(eps, start, k, N):
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
 
-    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Optimistic Initial Values Method", k)
+    plot_avg(chosen_actions, chosen_rewards, "Optimistic Initial Values Method", k, N)
 
 def upper_conf_bound(k, N):
 
@@ -203,8 +202,7 @@ def upper_conf_bound(k, N):
         total_reward += reward
         chosen_actions.append(actions[arm].id)
 
-    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
-    plot_avg(chosen_actions, avg, "Upper-Confidence Bound Method", k)
+    plot_avg(chosen_actions, chosen_rewards, "Upper-Confidence Bound Method", k, N)
 
 def print_methods():
     print(f'Choose a method: \n 1 - Greedy \n 2 - Epsilon-greedy '
