@@ -11,8 +11,8 @@ class Action:
         # current reward return average
         self.mean = 0
         # number of trials
-        self.N = 0
-        # probability of success
+        self.T = 0
+        # probability of success (for Bernoulli)
         self.p = 0
         self.std = 1
 
@@ -21,13 +21,12 @@ class Action:
         self.mean = reward
 
     # return reward from standard normal distribution
-    # return chosen action
     def choose_action(self):
         ## this one has more control over variance and std
         reward = np.random.normal(self.mean, self.std)
         return np.round(reward, 1)
 
-        # randn gives a distribution from some standardized normal distribution (mean 0 and variance 1)
+        ## randn gives a distribution from some standardized normal distribution (mean 0 and variance 1)
         # reward = np.random.randn() + self.id
         # return reward
 
@@ -41,60 +40,33 @@ class Action:
 
     # update the action-value estimate
     def update(self, x):
-        self.N += 1
+        self.T += 1
         # action-value function
-        self.mean = (1 - 1.0 / self.N) * self.mean + 1.0 / self.N * x
+        self.mean = (1 - 1.0 / self.T) * self.mean + 1.0 / self.T * x
 
-    def update_upper_bound(self):
-        i = math.sqrt(3 / 2 * math.log(n + 1) / numbers_of_selections[i])
-        upper_bound = average_reward + i
-        return upper_bound
-
-# Plot chosen actions and average trend of rewards over iterations(N)
-def plot_avg(actions, chosen_rewards, title, k, N):
-
-    avg = np.cumsum(chosen_rewards) / (np.arange(N) + 1)
-
-    # plot moving average
-    plt.plot(avg)
-    plt.title(title)
-    plt.ylabel('Average reward value')
-    plt.xlabel('Iterations')
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.show()
-
-    # plot histogram of chosen actions
-    bins = np.arange(k + 2) - 0.5
-    plt.hist(actions, bins, edgecolor='black')
-    plt.xticks(range(k + 1))
-    plt.xlim([0, k + 1])
-
-    plt.title('Histogram of actions selections')
-    plt.xlabel('Actions')
-    plt.ylabel('Number of times selected')
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.show()
-
-def e_greedy(k, eps, N):
-
-    # initialize actions
+def initialize_actions(k):
     actions = []
-    for a in range(1, k+1):
+    for a in range(1, k + 1):
         actions.append(Action(a))
+
+    return actions
+
+def e_greedy(k, eps, T):
+
+    actions = initialize_actions(k)
 
     # choose a percentage of indexes given epsilon
     random_list = []
-    nr = int(eps * float(N))
+    nr = int(eps * float(T))
     for i in range(nr):
-        random_list.append(random.randint(0, N))
+        random_list.append(random.randint(0, T))
 
     # keep track of chosen actions and their rewards
     chosen_actions = []
-    chosen_rewards = np.empty(N)
+    chosen_rewards = np.empty(T)
+    total = 0
 
-    for i in range(N):
+    for i in range(T):
 
         if i in random_list:
             # explore
@@ -107,32 +79,13 @@ def e_greedy(k, eps, N):
         actions[j].update(x)
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
+        total += x
 
-    plot_avg(chosen_actions, chosen_rewards, "Epsilon-greedy Method", k, N)
+    avg = np.cumsum(chosen_rewards) / (np.arange(T) + 1)
 
-def greedy(k, N):
+    return chosen_rewards
 
-    # initialize actions
-    actions = []
-    for a in range(1, k + 1):
-        actions.append(Action(a))
-
-    # keep track of chosen actions and their rewards
-    chosen_actions = []
-    chosen_rewards = np.empty(N)
-
-    for i in range(N):
-        # only exploit
-        j = np.argmax([a.mean for a in actions])
-
-        x = actions[j].choose_action()
-        actions[j].update(x)
-        chosen_rewards[i] = x
-        chosen_actions.append(actions[j].id)
-
-    plot_avg(chosen_actions, chosen_rewards, "Greedy Method", k, N)
-
-def optimistic_initial_values(eps, start, k, N):
+def optimistic_initial_values(eps, start, k, T):
 
     # initialize actions
     actions = []
@@ -143,15 +96,15 @@ def optimistic_initial_values(eps, start, k, N):
 
     # choose a percentage of indexes given epsilon
     random_list = []
-    nr = int(eps * float(N))
+    nr = int(eps * float(T))
     for i in range(nr):
-        random_list.append(random.randint(0, N))
+        random_list.append(random.randint(0, T))
 
     # keep track of chosen actions and their rewards
     chosen_actions = []
-    chosen_rewards = np.empty(N)
+    chosen_rewards = np.empty(T)
 
-    for i in range(N):
+    for i in range(T):
 
         if i in random_list:
             # explore
@@ -165,9 +118,9 @@ def optimistic_initial_values(eps, start, k, N):
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
 
-    plot_avg(chosen_actions, chosen_rewards, "Optimistic Initial Values Method", k, N)
+    return chosen_rewards
 
-def upper_conf_bound(k, N):
+def upper_conf_bound(k, T):
 
     # initialize actions
     actions = []
@@ -176,19 +129,20 @@ def upper_conf_bound(k, N):
 
     # keep track of chosen actions and their rewards
     chosen_actions = []
-    chosen_rewards = np.empty(N)
+    chosen_rewards = np.empty(T)
     sums_of_reward = [0] * k
     total_reward = 0
 
-    for n in range(0, N):
+    for n in range(0, T):
         arm = 0
         max_upper_bound = 0
         for i in range(0, k):
-            if (actions[i].N > 0):
-                average_reward = sums_of_reward[i] / actions[i].N
-                c = math.sqrt(2 * math.log(n + 1) / actions[i].N)
+            if (actions[i].T > 0):
+                average_reward = sums_of_reward[i] / actions[i].T
+                c = math.sqrt(2 * math.log(n + 1) / actions[i].T)
                 upper_bound = average_reward + c
             else:
+                # change this
                 upper_bound = 1e400
 
             if upper_bound > max_upper_bound:
@@ -202,53 +156,79 @@ def upper_conf_bound(k, N):
         total_reward += reward
         chosen_actions.append(actions[arm].id)
 
-    plot_avg(chosen_actions, chosen_rewards, "Upper-Confidence Bound Method", k, N)
+    return chosen_rewards
 
-def print_methods():
-    print(f'Choose a method: \n 1 - Greedy \n 2 - Epsilon-greedy '
-          f'\n 3 - Optimistic initial values \n 4 - Softmax policy '
-          f'\n 5 - Upper-Confidence Bound \n 6 - Action Preferences')  # Press ⌘F8 to toggle the breakpoint.
+# return sum of array values at each index
+def sum_arrays(arr1, arr2, T):
 
-def user_interact():
-    # ask user for method
-    m = int(input('Option: - '))
+    total = np.empty(T)
 
-    if m == 1:
-        print('Please specify the following parameters')
-        k = int(input('k: - '))
-        N = int(input('N: - '))
-        greedy(k, N)
-    elif m == 2:
-        print('Please specify the following parameters')
-        eps = float(input('epsilon: - '))
-        k = int(input('k: - '))
-        N = int(input('N: - '))
-        e_greedy(k, eps, N)
-    elif m == 3:
-        print('Please specify the following parameters')
-        eps = float(input('epsilon: - '))
-        start = int(input('initial reward: - '))
-        k = int(input('k: - '))
-        N = int(input('N: - '))
-        optimistic_initial_values(eps, start, k, N)
+    for i in range(T):
+        total[i] = arr1[i] + arr2[i]
 
-    elif m == 4:
-        print('Not implemented')
-        # Softmax policy
+    return total
 
-    elif m == 5:
-        print('Please specify the following parameters')
-        k = int(input('k: - '))
-        N = int(input('N: - '))
-        upper_conf_bound(k, N)
+# function to run N amount of experiments with time step T and total actions k
+def run_experiments(N, T, k, method):
 
-    elif m == 6:
-        print('Not implemented')
-        # Action preferences
+    # specify parameters
+    eps = 0.1
+    initial_reward = 5
 
-# Press the green button in the gutter to run the script.
+    # store sum of rewards at each time step T
+    total_rewards = np.empty(T)
+    # store average rewards at each time step T
+    avg_rewards = np.empty(T)
+
+    for _ in range(N):
+
+        if method == 1:
+            chosen_rewards = e_greedy(k, 0, T)
+        elif method == 2:
+            chosen_rewards = e_greedy(k, eps, T)
+        elif method == 3:
+            chosen_rewards = optimistic_initial_values(eps, initial_reward, k, T)
+        elif method == 4:
+            chosen_rewards = upper_conf_bound(k, T)
+
+        # sum up rewards at each time step
+        total_rewards = sum_arrays(total_rewards, chosen_rewards, T)
+
+    # take average of rewards at each time step
+    for i in range(T):
+        avg_rewards[i] = total_rewards[i] / N
+
+    return avg_rewards
+
 if __name__ == '__main__':
 
-    print_methods()
-    user_interact()
+    # actions/arms
+    k = 5
+    # time steps per experiment
+    T = 100
+    # number of experiments
+    N = 300
+
+    # store avg rewards after running experiment N times
+    avg_rewards = np.empty(T)
+
+    for i in range(1,5):
+        avg_rewards = run_experiments(N, T, k, i)
+        if i == 1:
+            plt.plot(avg_rewards, label="method = greedy")
+        elif i == 2:
+            plt.plot(avg_rewards, label="method = epsilon-greedy")
+        elif i == 3:
+            plt.plot(avg_rewards, label="method = optimistic initial values")
+        elif i == 4:
+            plt.plot(avg_rewards, label="method = UCB")
+
+    plt.title('Average reward value per time step (Gaussian)')
+    plt.ylabel('Average reward value')
+    plt.xlabel('Time steps')
+
+    plt.legend()
+    axes = plt.gca()
+    axes.yaxis.grid()
+    plt.show()
 
