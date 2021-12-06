@@ -1,3 +1,9 @@
+# references: https://www.geeksforgeeks.org/epsilon-greedy-algorithm-in-reinforcement-learning/
+# http://ethen8181.github.io/machine-learning/bandits/multi_armed_bandits.html
+# https://medium.com/analytics-vidhya/multi-armed-bandit-analysis-of-epsilon-greedy-algorithm-8057d7087423
+# https://github.com/kfoofw/bandit_simulations/blob/master/python/multiarmed_bandits/analysis/ts.md
+# https://www.analyticsvidhya.com/blog/2018/09/reinforcement-multi-armed-bandit-scratch-python/
+
 import numpy as np
 import random
 import matplotlib.pyplot as plt
@@ -53,7 +59,7 @@ def initialize_actions(k, T):
 
     return actions
 
-def e_greedy(k, eps, T):
+def e_greedy(k, T, eps, *args):
 
     actions = initialize_actions(k, T)
 
@@ -87,7 +93,11 @@ def e_greedy(k, eps, T):
 
     return chosen_rewards
 
-def optimistic_initial_values(eps, start, k, T):
+def greedy(k, T, *args):
+    rewards = e_greedy(k, T, 0)
+    return rewards
+
+def optimistic_initial_values(k, T, eps, start, *args):
 
     # initialize actions
     actions = initialize_actions(k, T)
@@ -122,7 +132,7 @@ def optimistic_initial_values(eps, start, k, T):
 
     return chosen_rewards
 
-def upper_conf_bound(k, T):
+def upper_conf_bound(k, T, *args):
     # initialize actions
     actions = initialize_actions(k, T)
 
@@ -167,7 +177,7 @@ def sum_arrays(arr1, arr2, T):
     return total
 
 # function to run N amount of experiments with time step T and total actions k
-def run_experiments(N, T, k, method):
+def run_experiments(N, T, k, algorithm):
 
     # specify parameters
     eps = 0.1
@@ -175,28 +185,40 @@ def run_experiments(N, T, k, method):
 
     # store sum of rewards at each time step T
     total_rewards = np.empty(T)
-    # store average rewards at each time step T
-    avg_rewards = np.empty(T)
 
+    # store average rewards at each time step T
+    average_rewards = np.empty(T)
+
+    # run N amount of experiments for each algorithm
     for _ in range(N):
-        chosen_rewards = np.empty(T)
-        if method == 1:
-            chosen_rewards = e_greedy(k, 0, T)
-        elif method == 2:
-            chosen_rewards = e_greedy(k, eps, T)
-        elif method == 3:
-            chosen_rewards = optimistic_initial_values(eps, initial_reward, k, T)
-        elif method == 4:
-            chosen_rewards = upper_conf_bound(k, T)
+        chosen_rewards = algorithm(k, T, eps, initial_reward)
 
         # sum up rewards at each time step
         total_rewards = sum_arrays(total_rewards, chosen_rewards, T)
 
     # take average of rewards at each time step
     for i in range(T):
-        avg_rewards[i] = total_rewards[i] / N
+        average_rewards[i] = (total_rewards[i] / N)
 
-    return avg_rewards
+    return average_rewards
+
+def plot_averages(N, T, k):
+
+    algorithms = [greedy, e_greedy, optimistic_initial_values, upper_conf_bound]
+    algorithm_names = ["greedy", "epsilon-greedy", "optimistic initial values", "UCB"]
+
+    for idx, algo in enumerate(algorithms):
+        avg_rewards = run_experiments(N, T, k, algo)
+        print(avg_rewards)
+        plt.plot(avg_rewards, label=algorithm_names[idx])
+
+    plt.title('Average reward value per time step (Bernoulli)')
+    plt.ylabel('Average reward value')
+    plt.xlabel('Time steps')
+    plt.legend()
+    axes = plt.gca()
+    axes.yaxis.grid()
+    plt.show()
 
 if __name__ == '__main__':
 
@@ -207,37 +229,4 @@ if __name__ == '__main__':
     # number of experiments
     N = 300
 
-    #algorithms = [greedy, e_greedy, optimistic_initial_values, upper_conf_bound]
-
-    # ctr, rewards = bernoulli(k, T)
-    # print(ctr)
-    # print(rewards)
-
-    # store avg rewards after running experiment N times
-    avg_rewards = np.empty(T)
-
-    for i in range(1, 5):
-        avg_rewards = run_experiments(N, T, k, i)
-        if i == 1:
-            plt.plot(avg_rewards, label="method = greedy")
-            avg_rewards = np.empty(T)
-        elif i == 2:
-            plt.plot(avg_rewards, label="method = epsilon-greedy")
-            avg_rewards = np.empty(T)
-        elif i == 3:
-            #print(avg_rewards)
-            plt.plot(avg_rewards, label="method = optimistic initial values")
-            avg_rewards = np.empty(T)
-        elif i == 4:
-            #print(avg_rewards)
-            plt.plot(avg_rewards, label="method = UCB")
-            avg_rewards = np.empty(T)
-
-    plt.title('Average reward value per time step (Bernoulli)')
-    plt.ylabel('Average reward value')
-    plt.xlabel('Time steps')
-
-    plt.legend()
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.show()
+    plot_averages(N, T, k)
