@@ -11,15 +11,15 @@ import math
 from collections import Counter
 
 class Action:
-    def __init__(self, id, T):
+    def __init__(self, id, p, rewards):
         self.id = id
         # current reward return average
         self.mean = 0
         # number of trials
         self.T = 0
         # probability of success (for Bernoulli)
-        self.p = 0
-        self.rewards = [0] * T
+        self.p = p
+        self.rewards = rewards
 
     # initial reward average
     def start_reward(self, reward):
@@ -36,7 +36,6 @@ class Action:
         # action-value function
         self.mean = (1 - 1.0 / self.T) * self.mean + 1.0 / self.T * x
 
-
 def generate_rewards(K, T):
     # probability of winning for each bandit
     p = np.random.rand(K)
@@ -51,12 +50,10 @@ def initialize_actions(k, T):
     # initialize set of actions by determining their probability and rewards for each time step
     for a in range(1, k + 1):
         action_rewards = np.empty(T)
-        actions.append(Action(a, T))
-        actions[a-1].p = p[a-1]
         for j in range(T):
             action_rewards[j] = rewards[j][a-1]
 
-        actions[a-1].rewards = action_rewards
+        actions.append(Action(a, p[a - 1], action_rewards))
 
     return actions
 
@@ -72,12 +69,10 @@ def best_actions(actions):
 def get_percentage(actions, chosen_actions):
     best = best_actions(actions)
     sum = 0
-
     for i in range(T):
         if chosen_actions[i] == best:
             sum += 1
     percentage = (sum * 100) / T
-
     return percentage
 
 def e_greedy(k, T, eps, *args):
@@ -93,7 +88,6 @@ def e_greedy(k, T, eps, *args):
     # keep track of chosen actions and their rewards
     chosen_actions = []
     chosen_rewards = np.empty(T)
-    total = 0
 
     for i in range(T):
 
@@ -108,9 +102,6 @@ def e_greedy(k, T, eps, *args):
         actions[j].update(x)
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
-        total += x
-
-    avg = np.cumsum(chosen_rewards) / (np.arange(T) + 1)
 
     percentage = get_percentage(actions, chosen_actions)
 
@@ -182,7 +173,6 @@ def softmax(k, T, *args):
             cum_prob += prob
             if cum_prob > z:
                 j = idx
-            #return len(probs) - 1
 
         x = actions[j].choose_action()
         actions[j].update(x)
@@ -211,8 +201,7 @@ def upper_conf_bound(k, T, *args):
                 c = math.sqrt(2 * math.log(n + 1) / actions[i].T)
                 upper_bound = average_reward + c
             else:
-                # change this
-                upper_bound = 1e400
+                upper_bound = 1e100
 
             if upper_bound > max_upper_bound:
                 max_upper_bound = upper_bound
@@ -281,7 +270,6 @@ def smooth(y, box_pts):
 def plot_averages(N, T, k):
 
     algorithms = [greedy, e_greedy, softmax, optimistic_initial_values, upper_conf_bound]
-    #algorithms = [e_greedy]
     algorithm_names = ["greedy", "epsilon-greedy", "softmax", "optimistic initial values", "UCB"]
 
     for idx, algo in enumerate(algorithms):
@@ -291,11 +279,10 @@ def plot_averages(N, T, k):
 
         print(algorithm_names[idx], "=", np.round(percentages,3))
 
-        poly = np.polyfit(range(0,T), avg_rewards, 13)
-        poly_y = np.poly1d(poly)(range(0,T))
+        # do not remove otherwise malfunction
+        print(avg_rewards)
 
-        plt.plot(poly_y, 'gray', markersize=14)
-        plt.plot(avg_rewards, label=algorithm_names[idx], alpha=0.6)
+        plt.plot(avg_rewards, label=algorithm_names[idx])
 
     plt.title('Average reward value per time step (Bernoulli)')
     plt.ylabel('Average reward value')
