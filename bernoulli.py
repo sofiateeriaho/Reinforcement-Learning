@@ -8,6 +8,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import math
+from collections import Counter
 
 class Action:
     def __init__(self, id, T):
@@ -19,6 +20,9 @@ class Action:
         # probability of success (for Bernoulli)
         self.p = 0
         self.rewards = [0] * T
+
+    def set_prob(self, p):
+        self.p = p
 
     # initial reward average
     def start_reward(self, reward):
@@ -52,12 +56,23 @@ def initialize_actions(k, T):
         action_rewards = np.empty(T)
         actions.append(Action(a, T))
         actions[a-1].p = p[a-1]
+        actions[a-1].set_prob(p)
         for j in range(T):
             action_rewards[j] = rewards[j][a-1]
 
         actions[a-1].rewards = action_rewards
 
     return actions
+
+def get_best(actions):
+    max = 0
+    chosen = -1
+    for idx in range(len(actions)):
+        if actions[idx].p > max:
+            max = actions[idx].p
+            chosen = actions[idx].id
+
+    return chosen
 
 def e_greedy(k, T, eps, *args):
 
@@ -91,17 +106,20 @@ def e_greedy(k, T, eps, *args):
 
     avg = np.cumsum(chosen_rewards) / (np.arange(T) + 1)
 
-    return chosen_rewards
+    best_action = get_best(actions)
+
+    return chosen_rewards, best_action, chosen_actions
 
 def greedy(k, T, *args):
-    rewards = e_greedy(k, T, 0)
-    return rewards
+    rewards, best_action, chosen_actions = e_greedy(k, T, 0)
+    return rewards, best_action, chosen_actions
 
 def optimistic_initial_values(k, T, eps, start, *args):
 
     # initialize actions
     actions = initialize_actions(k, T)
 
+    # set an initial reward for each action
     for a in range(len(actions)):
         # set initial reward
         actions[a].start_reward(start)
@@ -130,7 +148,44 @@ def optimistic_initial_values(k, T, eps, start, *args):
         chosen_rewards[i] = x
         chosen_actions.append(actions[j].id)
 
-    return chosen_rewards
+    best_action = get_best(actions)
+
+    return chosen_rewards, best_action, chosen_actions
+
+def softmax(k, T, *args):
+
+    # initialize actions
+    actions = initialize_actions(k, T)
+
+    chosen_actions = []
+    chosen_rewards = np.empty(T)
+
+    # annealing (adaptive learning rate)
+    tau = 1 / np.log(T + 0.000001)
+
+    probs_n = np.exp([a.mean for a in actions] / tau)
+    probs_d = probs_n.sum()
+    probs = probs_n / probs_d
+
+    cum_prob = 0.
+    z = np.random.rand()
+
+    i = 0
+    for i in range(T):
+        for idx, prob in enumerate(probs):
+            cum_prob += prob
+            if cum_prob > z:
+                j = idx
+            #return len(probs) - 1
+
+        x = actions[j].choose_action()
+        actions[j].update(x)
+        chosen_rewards[i] = x
+        chosen_actions.append(actions[j].id)
+
+    best_action = get_best(actions)
+
+    return chosen_rewards, best_action, chosen_actions
 
 def upper_conf_bound(k, T, *args):
     # initialize actions
@@ -164,7 +219,11 @@ def upper_conf_bound(k, T, *args):
 
         chosen_actions.append(actions[arm].id)
 
-    return chosen_rewards
+        ['{:.4f}'.format(u) for u in chosen_rewards]
+
+    best_action = get_best(actions)
+
+    return chosen_rewards, best_action, chosen_actions
 
 # return sum of array values at each index
 def sum_arrays(arr1, arr2, T):
@@ -175,6 +234,26 @@ def sum_arrays(arr1, arr2, T):
         total[i] = arr1[i] + arr2[i]
 
     return total
+
+# calculate the percentage an action is taken per time step T
+def action_percentage(N, T, arr, best):
+
+    percentages = np.empty(T)
+
+    print(best)
+
+    for i in range(T):
+        sum = 0
+        for j in range(N):
+            #print(arr[j][i])
+            if arr[j][i] == best[j]:
+                sum += 1
+        p = (sum * 100)/N
+        #print(sum)
+        percentages[i] = p
+
+    #print(percentages)
+    return percentages
 
 # function to run N amount of experiments with time step T and total actions k
 def run_experiments(N, T, k, algorithm):
@@ -189,9 +268,16 @@ def run_experiments(N, T, k, algorithm):
     # store average rewards at each time step T
     average_rewards = np.empty(T)
 
+    percentage_array = []
+    best_actions = []
+
     # run N amount of experiments for each algorithm
-    for _ in range(N):
-        chosen_rewards = algorithm(k, T, eps, initial_reward)
+    for y in range(N):
+        chosen_rewards, best, chosen_actions = algorithm(k, T, eps, initial_reward)
+
+        percentage_array.append(chosen_actions)
+
+        best_actions.append(best)
 
         # sum up rewards at each time step
         total_rewards = sum_arrays(total_rewards, chosen_rewards, T)
@@ -200,33 +286,69 @@ def run_experiments(N, T, k, algorithm):
     for i in range(T):
         average_rewards[i] = (total_rewards[i] / N)
 
-    return average_rewards
+    all_percentages = action_percentage(N, T, percentage_array, best_actions)
+
+    return average_rewards, all_percentages
+
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
 
 def plot_averages(N, T, k):
 
-    algorithms = [greedy, e_greedy, optimistic_initial_values, upper_conf_bound]
-    algorithm_names = ["greedy", "epsilon-greedy", "optimistic initial values", "UCB"]
+    algorithms = [greedy, e_greedy, softmax, optimistic_initial_values, upper_conf_bound]
+    algorithm_names = ["greedy", "epsilon-greedy", "softmax", "optimistic initial values", "UCB"]
+
+    n_bins = T
+
+    percentages_total = []
 
     for idx, algo in enumerate(algorithms):
-        avg_rewards = run_experiments(N, T, k, algo)
-        print(avg_rewards)
-        plt.plot(avg_rewards, label=algorithm_names[idx])
+        avg_rewards, percentages = run_experiments(N, T, k, algo)
 
-    plt.title('Average reward value per time step (Bernoulli)')
-    plt.ylabel('Average reward value')
-    plt.xlabel('Time steps')
-    plt.legend()
+        ['{:.4f}'.format(i) for i in avg_rewards]
+        #print(avg_rewards)
+
+        # poly = np.polyfit(range(0,T), avg_rewards, 13)
+        # poly_y = np.poly1d(poly)(range(0,T))
+
+        #print(percentages)
+        #plt.hist(percentages, label=algorithm_names[idx])
+
+        # plt.plot(poly_y, 'gray', markersize=14)
+        # plt.plot(avg_rewards, label=algorithm_names[idx], alpha=0.6)
+        #plt.plot(smooth(avg_rewards,5),label=algorithm_names[idx])
+
+
+
+    # plt.title('Average reward value per time step (Bernoulli)')
+    # plt.ylabel('Average reward value')
+    # plt.xlabel('Time steps')
+    # plt.legend()
+    # axes = plt.gca()
+    # axes.yaxis.grid()
+    # plt.show()
+
+
+    plt.hist(percentages_total, density=True, histtype='bar', label=algorithm_names)
+
+    plt.title('Percentage of best action selection per time step')
+    plt.xlabel('Time step (T)')
+    plt.ylabel('Percentage of times selected')
     axes = plt.gca()
     axes.yaxis.grid()
-    plt.show()
+    #plt.show()
 
 if __name__ == '__main__':
 
     # actions/arms
     k = 5
     # time steps per experiment
-    T = 100
+    T = 10
     # number of experiments
-    N = 300
+    N = 100
+
+    #print(softmax(k, T))
 
     plot_averages(N, T, k)
