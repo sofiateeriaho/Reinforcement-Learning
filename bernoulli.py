@@ -28,7 +28,7 @@ class Action:
     # return reward from bernoulli distribution
     def choose_action(self):
         reward = self.rewards[self.T]
-        return reward
+        return np.round(reward, 1)
 
     # update the action-value estimate
     def update(self, x):
@@ -280,7 +280,7 @@ def plot_averages(N, T, k):
         print(algorithm_names[idx], "=", np.round(percentages,3))
 
         # do not remove otherwise malfunction
-        print(avg_rewards)
+        # print(avg_rewards)
 
         plt.plot(avg_rewards, label=algorithm_names[idx])
 
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     # actions/arms
     k = 5
     # time steps per experiment
-    T = 100
+    T = 500
     # number of experiments
     N = 300
 
