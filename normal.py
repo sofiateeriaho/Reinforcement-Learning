@@ -284,7 +284,7 @@ def plot_averages(N, T, k):
 if __name__ == '__main__':
 
     # actions/arms
-    k = 5
+    k = 10
     # time steps per experiment
     T = 100
     # number of experiments
