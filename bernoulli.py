@@ -8,7 +8,6 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 import math
-from collections import Counter
 
 class Action:
     def __init__(self, id, p, rewards):
@@ -279,7 +278,7 @@ def plot_averages(N, T, k):
 
         print(algorithm_names[idx], "=", np.round(percentages,3))
 
-        # do not remove otherwise malfunction
+        # do not remove or uncomment due to floating point error
         print(avg_rewards)
 
         plt.plot(avg_rewards, label=algorithm_names[idx])
