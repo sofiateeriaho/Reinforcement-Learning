@@ -297,8 +297,8 @@ if __name__ == '__main__':
     # actions/arms
     k = 5
     # time steps per experiment
-    T = 500
+    T = 100
     # number of experiments
-    N = 300
+    N = 500
 
     plot_averages(N, T, k)
