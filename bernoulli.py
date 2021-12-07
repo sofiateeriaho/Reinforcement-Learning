@@ -280,7 +280,7 @@ def plot_averages(N, T, k):
         print(algorithm_names[idx], "=", np.round(percentages,3))
 
         # do not remove otherwise malfunction
-        # print(avg_rewards)
+        print(avg_rewards)
 
         plt.plot(avg_rewards, label=algorithm_names[idx])
 

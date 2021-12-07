@@ -230,7 +230,7 @@ def sum_arrays(arr1, arr2, T):
 def run_experiments(N, T, k, algorithm):
 
     # specify parameters
-    eps = 0.2
+    eps = 0.1
     initial_reward = 3
 
     # store sum of rewards at each time step T
@@ -267,9 +267,6 @@ def plot_averages(N, T, k):
         ['{:.4f}'.format(i) for i in avg_rewards]
 
         print(algorithm_names[idx], "=", np.round(percentages, 3))
-
-        # uncomment to see smth spooky (:
-        #print(avg_rewards)
 
         plt.plot(avg_rewards, label=algorithm_names[idx])
 
